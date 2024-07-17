@@ -6,8 +6,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    # ffmpeg 7.0.1
-    ffmpegPkgs.url = "github:nixos/nixpkgs?rev=05bbf675397d5366259409139039af8077d695ce";
+    # ffmpeg 5.1.3
+    ffmpegPkgs.url = "github:nixos/nixpkgs?rev=336eda0d07dc5e2be1f923990ad9fdb6bc8e28e3";
 
     # imagemagick 7.1.1-34
     imagemagickPkgs.url = "github:nixos/nixpkgs?rev=05bbf675397d5366259409139039af8077d695ce";
@@ -26,7 +26,7 @@
       imagemagickPackages = import imagemagickPkgs { system = system; };
     in {
       packages.${system} = {
-        ffmpeg = ffmpegPackages.ffmpeg_7-headless;
+        ffmpeg = ffmpegPackages.ffmpeg_5-headless;
         imagemagick = imagemagickPackages.imagemagick;
       };
       apps.${system} = {
