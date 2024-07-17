@@ -1,0 +1,61 @@
+{
+  "nodes": {
+    "ffmpegPkgs": {
+      "locked": {
+        "lastModified": 1720494119,
+        "narHash": "sha256-IE7PZn9bSjxI4/MugjAEx49oPoxu0uKXdfC+X7HcRuQ=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "05bbf675397d5366259409139039af8077d695ce",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "05bbf675397d5366259409139039af8077d695ce",
+        "type": "github"
+      }
+    },
+    "imagemagickPkgs": {
+      "locked": {
+        "lastModified": 1720494119,
+        "narHash": "sha256-IE7PZn9bSjxI4/MugjAEx49oPoxu0uKXdfC+X7HcRuQ=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "05bbf675397d5366259409139039af8077d695ce",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "05bbf675397d5366259409139039af8077d695ce",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1720957393,
+        "narHash": "sha256-oedh2RwpjEa+TNxhg5Je9Ch6d3W1NKi7DbRO1ziHemA=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "693bc46d169f5af9c992095736e82c3488bf7dbb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "ffmpegPkgs": "ffmpegPkgs",
+        "imagemagickPkgs": "imagemagickPkgs",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
