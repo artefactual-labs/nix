@@ -6,7 +6,7 @@ Install Nix on your system:
 
 Check out the repository:
 
-    git clone https://github.com/sevein/run
+    git clone https://github.com/artefactual-labs/nix
 
 Show the outputs provided by the flake:
 
