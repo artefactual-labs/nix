@@ -1,56 +1,130 @@
-## Usage
+# Archivematica Toolchain
 
-Install Nix on your system:
+This repository defines the concept and prototype implementation of an
+`archivematica-toolchain`: a controlled, versioned set of external system
+tools for Archivematica.
 
-    curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+## Problem
 
-Check out the repository:
+Archivematica is distributed in multiple ways today, including Docker images,
+Debian packages, RPM packages, and Ansible-managed environments.
 
-    git clone https://github.com/artefactual-labs/nix
+That flexibility is useful, but it also means there is no single,
+source-controlled definition of the external tools Archivematica depends on.
+Those tools are currently resolved through distribution-specific package
+managers and repositories, which makes it harder to answer questions like:
 
-Show the outputs provided by the flake:
+- What exact version of `ffmpeg` are we shipping?
+- Which `jhove` or `siegfried` build should an Archivematica deployment
+  expect?
+- How do we deliver the same dependency contract across Docker and more
+  traditionally-managed environments?
+- How do we upgrade these dependencies deliberately instead of inheriting
+  repository drift?
 
-    $ nix flake show
-    git+file:///home/jesus/Projects/run
-    ├───apps
-    │   └───x86_64-linux
-    │       ├───ffmpeg: app
-    │       └───magick: app
-    ├───devShells
-    │   └───x86_64-linux
-    │       └───default: development environment 'nix-shell'
-    └───packages
-        └───x86_64-linux
-            ├───ffmpeg: package 'ffmpeg-headless-7.0.1'
-            └───imagemagick: package 'imagemagick-7.1.1-34'
+Today, the Archivematica Docker baseline pulls packages from a mix of Ubuntu
+repositories, Archivematica externals, and MediaArea packages.
+That works, but it is not yet a single deterministic dependency contract.
 
-Run ffmpeg:
+## Goal
 
-    $ nix run .#ffmpeg -- -version
-    ffmpeg version 5.1.3 Copyright (c) 2000-2022 the FFmpeg developers
-    built with gcc 13.2.0 (GCC)
-    configuration: --disable-static --prefix=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3 --target_os=linux --arch=x86_64 --pkg-config=pkg-config --enable-gpl --enable-version3 --disable-nonfree --disable-static --enable-shared --enable-pic --disable-thumb --disable-small --enable-runtime-cpudetect --disable-gray --enable-swscale-alpha --enable-hardcoded-tables --enable-safe-bitstream-reader --enable-pthreads --disable-w32threads --disable-os2threads --enable-network --enable-pixelutils --datadir=/nix/store/mxbd3nxibx8yafvjk061k5mhpndfwfqb-ffmpeg-headless-5.1.3-data/share/ffmpeg --enable-ffmpeg --disable-ffplay --enable-ffprobe --bindir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3-bin/bin --enable-avcodec --enable-avdevice --enable-avfilter --enable-avformat --enable-avutil --enable-postproc --enable-swresample --enable-swscale --libdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3-lib/lib --incdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3-dev/include --enable-doc --enable-htmlpages --enable-manpages --mandir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3-man/share/man --enable-podpages --enable-txtpages --docdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-headless-5.1.3-doc/share/doc/ffmpeg --enable-alsa --disable-libaom --enable-libass --disable-libbluray --disable-libbs2b --enable-bzlib --disable-libcelt --disable-chromaprint --disable-cuda --disable-cuda-llvm --enable-libdav1d --disable-libdc1394 --enable-libdrm --disable-libfdk-aac --disable-libflite --enable-fontconfig --enable-libfreetype --disable-frei0r --disable-libfribidi --disable-libgme --enable-gnutls --disable-libgsm --enable-iconv --disable-libjack --disable-ladspa --enable-lzma --disable-libmfx --disable-libmodplug --enable-libmp3lame --disable-libmysofa --enable-cuvid --enable-nvdec --enable-nvenc --disable-openal --disable-opencl --disable-libopencore-amrnb --disable-opengl --disable-libopenh264 --disable-libopenjpeg --disable-libopenmpt --enable-libopus --disable-libplacebo --disable-libpulse --disable-librav1e --disable-librtmp --disable-libsmbclient --disable-sdl2 --disable-libshaderc --enable-libsoxr --enable-libspeex --enable-libsrt --enable-libssh --disable-librsvg --enable-libsvtav1 --disable-libtensorflow --enable-libtheora --enable-libv4l2 --enable-v4l2-m2m --enable-vaapi --disable-vdpau --disable-libvidstab --disable-libvmaf --disable-libvo-amrwbenc --enable-libvorbis --enable-libvpx --disable-vulkan --disable-libwebp --enable-libx264 --enable-libx265 --disable-libxavs --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib --disable-libxml2 --enable-libxvid --enable-libzimg --enable-zlib --disable-libzmq --disable-debug --enable-optimizations --disable-extra-warnings --disable-stripping
-    libavutil      57. 28.100 / 57. 28.100
-    libavcodec     59. 37.100 / 59. 37.100
-    libavformat    59. 27.100 / 59. 27.100
-    libavdevice    59.  7.100 / 59.  7.100
-    libavfilter     8. 44.100 /  8. 44.100
-    libswscale      6.  7.100 /  6.  7.100
-    libswresample   4.  7.100 /  4.  7.100
-    libpostproc    56.  6.100 / 56.  6.100
+The goal of this project is to publish a named toolchain for Archivematica:
 
-Run magick:
+- curated rather than incidental;
+- versioned as one compatibility unit;
+- defined in source control;
+- buildable into downstream artifacts from one canonical description.
 
-    $ nix run .#magick -- -version
-    Version: ImageMagick 7.1.1-34 Q16-HDRI x86_64 39a4f1cb2:20240623 https://imagemagick.org
-    Copyright: (C) 1999 ImageMagick Studio LLC
-    License: https://imagemagick.org/script/license.php
-    Features: Cipher DPC HDRI OpenMP(4.5)
-    Delegates (built-in): bzlib cairo djvu fontconfig freetype heic jng jp2 jpeg jxl lcms lqr lzma openexr pangocairo png raw rsvg tiff webp x xml zlib zstd
-    Compiler: gcc (13.3)
+Consumers should be able to talk about "Archivematica toolchain version X"
+instead of reconstructing the dependency story package by package.
 
-Run a Bash shell with the build environment:
+## Why "Toolchain"
 
-    $ nix develop
-    (nix:nix-shell-env) $ which ffmpeg
-    /nix/store/g2rr4c7c7968jggzzzh558hlhab1b8pj-ffmpeg-headless-5.1.3-bin/bin/ffmpeg
+We call this a toolchain because the value is not just in collecting packages.
+The value is in releasing a known-good set of external tools together, with
+versions chosen intentionally for Archivematica workflows.
+
+This distinguishes the project from:
+
+- the Archivematica application itself;
+- a generic Ubuntu base image;
+- language-specific development dependencies;
+- a repository that manages only one package.
+
+## Why Nix
+
+Nix is the definition and build layer for this effort.
+
+For this project, that means:
+
+- package sources can be pinned and reviewed in source control;
+- upgrades become explicit changes instead of repository drift;
+- the same toolchain definition can be used for Docker, local development, and
+  other downstream distribution formats;
+- one source of truth can produce multiple artifacts.
+
+Nix does not have to be a runtime requirement on every target system. A
+practical model is:
+
+- Nix defines the canonical toolchain;
+- CI builds artifacts from that definition;
+- downstream consumers receive Docker images, packages, or other artifacts
+  suited to their environment.
+
+## Deliverables
+
+This repository is intended to produce two primary artifact types.
+
+### Docker Artifact
+
+A Docker image providing a stable Archivematica toolchain on top of Ubuntu
+24.04, suitable for use as a base image for Archivematica-related containers.
+
+### Nix Artifact
+
+A flake exposing the toolchain for Nix-native use, including:
+
+- a package named `archivematica-toolchain`;
+- a development shell for maintainers;
+- supporting package outputs for individual tools;
+- optionally, OCI image outputs built directly by Nix.
+
+## Versioning Model
+
+This project needs two layers of versioning.
+
+### Toolchain Release Version
+
+The toolchain itself should have a release version such as `v1.2.3`.
+
+That version represents:
+
+- the selected set of managed tools;
+- the exact resolved versions of those tools;
+- the compatibility contract being published to Archivematica consumers.
+
+### Locked Build Inputs
+
+The lock file is the machine-precise description of the package sources used to
+build the toolchain.
+
+Releases should also publish a human-readable manifest of included tool
+versions so the compatibility contract is easy to review.
+
+## Documents
+
+- [TOOLS.md](TOOLS.md) tracks the managed tools, the current baseline versions,
+  and implementation status.
+- [CONTRIBUTING.md](CONTRIBUTING.md) describes the repository layout,
+  contributor workflow, and verification commands.
+
+## Status
+
+This repository is still a prototype, but it already demonstrates the intended
+shape:
+
+- small per-tool definitions;
+- pinned package sources;
+- custom packaging where `nixpkgs` is insufficient;
+- multi-architecture Linux outputs;
+- a Docker path that uses Ubuntu 24.04 as the final base image.

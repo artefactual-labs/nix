@@ -1,0 +1,4 @@
+.nix-cache/
+.nix-state/
+result
+result-*
