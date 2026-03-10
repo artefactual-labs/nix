@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version tag to release (e.g., v0.1.0 or v0.1.0-rc.1)
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: true
+
+env:
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/archivematica-toolchain
+
+jobs:
+  validate-version:
+    name: Validate semantic version
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .github/actions/validate-semver
+      - name: Validate semantic version
+        uses: ./.github/actions/validate-semver
+        with:
+          version: ${{ github.event.inputs.version }}
+      - name: Ensure release tag does not already exist
+        shell: bash
+        run: |
+          tag='${{ github.event.inputs.version }}'
+          if git ls-remote --exit-code --tags "https://github.com/${{ github.repository }}.git" "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists on origin" >&2
+            exit 1
+          fi
+
+  image-build:
+    name: Build Docker images
+    needs: [validate-version]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Derive platform pair
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta for GHCR
+        id: meta-ghcr
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.version }}
+      - name: Build and push to GHCR by digest
+        id: build-ghcr
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
+          provenance: false
+          sbom: false
+          outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      - name: Export GHCR digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests-ghcr"
+          digest="${{ steps.build-ghcr.outputs.digest }}"
+          touch "${{ runner.temp }}/digests-ghcr/${digest#sha256:}"
+      - name: Upload GHCR digest
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4.6.2
+        with:
+          name: digests-ghcr-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests-ghcr/*
+          if-no-files-found: error
+          retention-days: 1
+
+  image-merge:
+    name: Publish Docker manifests
+    runs-on: ubuntu-24.04
+    needs: [image-build]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download GHCR digests
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          path: ${{ runner.temp }}/digests-ghcr
+          pattern: digests-ghcr-*
+          merge-multiple: true
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Create manifest list and push to GHCR
+        working-directory: ${{ runner.temp }}/digests-ghcr
+        shell: bash
+        run: |
+          tag='${{ github.event.inputs.version }}'
+          args=(
+            -t "${{ env.GHCR_IMAGE }}:${tag}"
+          )
+          if [[ "${tag}" != *-* ]]; then
+            args+=(-t "${{ env.GHCR_IMAGE }}:latest")
+          fi
+
+          docker buildx imagetools create \
+            "${args[@]}" \
+            $(printf '${{ env.GHCR_IMAGE }}@sha256:%s ' *)
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ github.event.inputs.version }}
+
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-24.04
+    needs: [image-merge]
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Push release tag
+        shell: bash
+        run: |
+          tag='${{ github.event.inputs.version }}'
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists locally" >&2
+            exit 1
+          fi
+
+          git tag "${tag}"
+          git push origin "refs/tags/${tag}"
+      - name: Create GitHub Release
+        uses: ./.github/actions/release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: ${{ github.event.inputs.version }}
+          title: ${{ github.event.inputs.version }}
+          prerelease: ${{ contains(github.event.inputs.version, '-') }}
