@@ -44,6 +44,26 @@ We call this a toolchain because the value is not just in collecting packages.
 The value is in releasing a known-good set of external tools together, with
 versions chosen intentionally for Archivematica workflows.
 
+In digital preservation, that matters for reasons beyond convenience.
+Preservation actions are often defined in terms of specific tools, parameters,
+and execution environments. [PAR](https://parcore.org/), for example, models
+preservation actions as explicit descriptions of the tool to invoke, the
+arguments to pass, and the operating environment. If those details are left
+implicit, institutions can share policy intent without actually sharing the
+same executable behavior.
+
+A named, versioned toolchain improves:
+
+- predictability, because the same workflow runs against the same tool versions
+  across deployments;
+- reviewability, because behavior changes show up as explicit toolchain
+  upgrades instead of ambient repository updates;
+- comparability, because institutions can relate outcomes to a known execution
+  stack instead of an assumed one;
+- reuse, because preservation policies and action definitions are easier to
+  exchange when the execution layer is itself a published compatibility
+  contract.
+
 This distinguishes the project from:
 
 - the Archivematica application itself;
