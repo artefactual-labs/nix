@@ -38,6 +38,22 @@ The goal of this project is to publish a named toolchain for Archivematica:
 Consumers should be able to talk about "Archivematica toolchain version X"
 instead of reconstructing the dependency story package by package.
 
+## Scope Boundary
+
+This repository is responsible for external tools that Archivematica expects
+the execution environment to provide independently of Archivematica's own
+Python application dependencies.
+
+That means [tools.toml](tools.toml) should include tools such as `ffmpeg`,
+`jhove`, `siegfried`, `7z`, `tree`, or `mediainfo` when Archivematica expects
+them to be present as system-level commands.
+
+It should not include Python-provided console scripts or libraries that are
+already delivered by Archivematica itself through `pyproject.toml` /
+`requirements.txt`, even if Archivematica later invokes them through
+`subprocess`. Those belong to the Archivematica application environment, not
+to this repo's independent toolchain contract.
+
 ## Why "Toolchain"
 
 We call this a toolchain because the value is not just in collecting packages.
@@ -133,8 +149,15 @@ versions so the compatibility contract is easy to review.
 
 ## Documents
 
-- [TOOLS.md](TOOLS.md) tracks the managed tools, the current baseline versions,
-  and implementation status.
+- [tools.toml](tools.toml) is the machine-readable manifest of Archivematica
+  external tools that this repository is expected to provide independently of
+  Archivematica's Python dependencies. Each entry describes the tool
+  Archivematica expects, the binaries it may invoke, and optionally the
+  package name this repository exposes for that tool.
+- [tools](tools) contains the Nix tool definitions that turn those tool names
+  into flake package outputs.
+- [pkgs](pkgs) contains custom package implementations used by some tool
+  definitions when taking a package directly from `nixpkgs` is not sufficient.
 - [CONTRIBUTING.md](CONTRIBUTING.md) describes the repository layout,
   contributor workflow, and verification commands.
 

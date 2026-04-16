@@ -7,18 +7,24 @@ maintenance workflow, and basic verification commands.
 
 - [README.md](README.md) is the authoritative description of the concept and
   purpose of this effort.
-- [TOOLS.md](TOOLS.md) tracks tool scope, baseline versions, and
-  implementation status.
+- [tools.toml](tools.toml) is the machine-readable manifest of Archivematica
+  tools that this repository must provide independently of Archivematica's
+  Python dependencies, plus the optional package name this repository exposes
+  for each one.
 - This file covers contributor workflow and repository mechanics.
 
 ## Repository Layout
 
 - [flake.nix](flake.nix): flake entrypoint and per-system output wiring.
+- [lib/tool-definitions.nix](lib/tool-definitions.nix): collects the per-tool
+  Nix definitions from [tools](tools).
 - [lib/mk-toolchain.nix](lib/mk-toolchain.nix): assembles tool definitions
   into packages, apps, and manifests.
-- [tools](tools): one small definition file per tool.
-- [pkgs](pkgs): custom package implementations for tools that cannot be taken
-  directly from `nixpkgs`.
+- [tools.toml](tools.toml): canonical manifest of Archivematica tools.
+- [tools](tools): one small Nix definition per tool, mapping a tool name to
+  the package this repo exposes for it.
+- [pkgs](pkgs): custom package implementations used by some entries in
+  [tools](tools). Not every tool has a matching `pkgs/<name>` directory.
 - [Dockerfile](Dockerfile): Docker-based build path for the Ubuntu 24.04 base
   image prototype.
 
@@ -26,9 +32,18 @@ maintenance workflow, and basic verification commands.
 
 Use the following split when adding or changing a tool:
 
-- put descriptive metadata in `tools/<name>.nix`;
+- record or update the Archivematica-facing contract in `tools.toml`;
+- put the Nix tool definition in `tools/<name>.nix`;
 - keep custom packaging logic in `pkgs/<name>/default.nix`;
 - keep `flake.nix` focused on wiring, not per-tool logic.
+
+Before adding a new `tools.toml` entry, check the boundary first:
+
+- include commands that the execution environment must provide independently
+  of Archivematica itself;
+- exclude Python libraries or console scripts already delivered by
+  Archivematica's own application environment, even if they are later invoked
+  through `subprocess`.
 
 Tool definitions should describe:
 
@@ -106,6 +121,20 @@ docker run --rm --platform linux/arm64 archivematica-toolchain:test ffmpeg -vers
 docker run --rm --platform linux/arm64 archivematica-toolchain:test magick -version
 ```
 
+Or run the shared smoke-test script used by CI:
+
+```sh
+./scripts/smoke-test-docker-image.sh archivematica-toolchain:test linux/arm64
+```
+
+The smoke-test script is the preferred local verification path after Docker
+builds. It checks representative tools from the final image and also verifies
+that `version-report` is available in the assembled toolchain path.
+
+If a command works as `nix run .#<tool>` or as an individual package build but
+is missing from the Docker image, check the final assembly in
+[lib/mk-toolchain.nix](lib/mk-toolchain.nix), not just the tool definition.
+
 ## Current Implementation Notes
 
 - `ffmpeg`, `imagemagick`, and `bulk-extractor` currently resolve from pinned
@@ -114,22 +143,31 @@ docker run --rm --platform linux/arm64 archivematica-toolchain:test magick -vers
   `sf` and `roy`.
 - `jhove` is packaged locally from upstream Maven source and runs with pinned
   Java 8 from `nixpkgs`.
+- `mediaconch` is packaged locally from MediaArea source together with a local
+  `libmediainfo` package.
 - The Docker prototype uses `ubuntu:noble-20260210.1` as the final base image.
+
+## CI Verification
+
+- Pull requests call [.github/workflows/_build.yml](.github/workflows/_build.yml)
+  through [.github/workflows/pr.yml](.github/workflows/pr.yml).
+- The shared build workflow builds the Docker image for both `linux/amd64` and
+  `linux/arm64`, then runs the same smoke-test script contributors can run
+  locally.
+- Keep CI smoke coverage in `scripts/smoke-test-docker-image.sh` so local and
+  PR validation stay aligned.
 
 ## Updating Tools
 
 When updating a tool:
 
-1. Update the tool definition or custom package.
-2. Verify the tool builds for at least one Linux target.
-3. Update [TOOLS.md](TOOLS.md) if scope, strategy,
-   or status changed.
-4. Update [README.md](README.md) only if the
-   conceptual framing changed.
-
-## Baseline Tracking
-
-The current Docker/package baseline for Archivematica should be treated as the
-reference point for deciding what belongs in the toolchain, but baseline
-inventory details belong in [TOOLS.md](TOOLS.md),
-not in the README.
+1. Update `tools.toml`.
+2. Update the tool definition or custom package if the tool is managed here.
+3. If the tool comes from a shared source such as `nixpkgs`, make sure the
+   source and package mapping still resolve cleanly through
+   [lib/tool-definitions.nix](lib/tool-definitions.nix) and
+   [lib/mk-toolchain.nix](lib/mk-toolchain.nix).
+4. Verify the tool builds for at least one Linux target.
+5. Rebuild the Docker image and run
+   `./scripts/smoke-test-docker-image.sh archivematica-toolchain:test <platform>`.
+6. Update [README.md](README.md) only if the conceptual framing changed.

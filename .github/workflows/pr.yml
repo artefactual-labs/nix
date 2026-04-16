@@ -1,0 +1,12 @@
+name: PR
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_build.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}

@@ -10,7 +10,7 @@
     ...
   }:
     let
-      toolDefinitions = import ./tools;
+      toolDefinitions = import ./lib/tool-definitions.nix;
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"

@@ -1,0 +1,139 @@
+[tools.ffmpeg]
+version = "5.1.3"
+binaries = ["ffmpeg", "ffprobe"]
+package = "ffmpeg"
+
+[tools.imagemagick]
+version = "7.1.1-34"
+binaries = ["magick"]
+package = "imagemagick"
+
+[tools."bulk-extractor"]
+version = "2.1.1"
+binaries = ["bulk_extractor"]
+package = "bulk-extractor"
+
+[tools.jhove]
+version = "1.34.0"
+binaries = ["jhove"]
+package = "jhove"
+
+[tools.siegfried]
+version = "1.11.2"
+binaries = ["sf", "roy"]
+package = "siegfried"
+
+[tools.sevenzip]
+version = "24.07"
+binaries = ["7z"]
+package = "sevenzip"
+
+[tools.pbzip2]
+version = "1.1.13"
+binaries = ["pbzip2"]
+package = "pbzip2"
+
+[tools.gzip]
+version = "1.13"
+binaries = ["gzip"]
+package = "gzip"
+
+[tools."gnu-tar"]
+version = "1.35"
+binaries = ["tar"]
+package = "gnu-tar"
+
+[tools."coreutils-fileops"]
+version = "9.5"
+binaries = ["cp", "mv", "mkdir", "chmod", "test"]
+package = "coreutils-fileops"
+
+[tools.tree]
+version = "2.1.2"
+binaries = ["tree"]
+package = "tree"
+
+[tools.atool]
+version = "0.39.0"
+binaries = ["atool"]
+package = "atool"
+
+[tools.rsync]
+version = "3.3.0"
+binaries = ["rsync"]
+package = "rsync"
+
+[tools."coreutils-hashsum"]
+version = "9.5"
+binaries = ["md5sum", "sha1sum", "sha256sum", "sha512sum"]
+package = "coreutils-hashsum"
+
+[tools.clamav]
+version = "1.3.1"
+binaries = ["clamscan", "freshclam", "clamd"]
+package = "clamav"
+
+[tools.mediainfo]
+version = "24.06"
+binaries = ["mediainfo"]
+package = "mediainfo"
+
+[tools.mediaconch]
+version = "25.04"
+binaries = ["mediaconch"]
+package = "mediaconch"
+
+[tools.unar]
+version = "1.10.7"
+binaries = ["unar"]
+package = "unar"
+
+[tools.file]
+version = "5.45"
+binaries = ["file"]
+package = "file"
+
+[tools.exiftool]
+version = "12.84"
+binaries = ["exiftool"]
+package = "exiftool"
+
+[tools.readpst]
+version = "0.6.76"
+binaries = ["readpst"]
+package = "readpst"
+
+[tools.grep]
+version = "3.11"
+binaries = ["grep"]
+package = "grep"
+
+[tools.awk]
+version = "5.2.2"
+binaries = ["awk"]
+package = "awk"
+
+[tools.ghostscript]
+version = "10.03.1"
+binaries = ["gs", "ps2pdf"]
+package = "ghostscript"
+
+[tools.inkscape]
+version = "1.3.2"
+binaries = ["inkscape"]
+package = "inkscape"
+
+[tools.sleuthkit]
+version = "4.12.1"
+binaries = ["fiwalk", "tsk_recover"]
+package = "sleuthkit"
+
+[tools.tesseract]
+version = "5.3.4"
+binaries = ["tesseract"]
+package = "tesseract"
+
+[tools."unrar-free"]
+version = "0.3.0"
+binaries = ["unrar-free"]
+package = "unrar-free"
