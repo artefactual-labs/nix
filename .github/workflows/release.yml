@@ -37,9 +37,16 @@ jobs:
             exit 1
           fi
 
+  preflight-build:
+    name: Preflight build and smoke test
+    needs: [validate-version]
+    uses: ./.github/workflows/_build.yml
+    with:
+      ref: ${{ github.sha }}
+
   image-build:
     name: Build Docker images
-    needs: [validate-version]
+    needs: [validate-version, preflight-build]
     strategy:
       fail-fast: false
       matrix:

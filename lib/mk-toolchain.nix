@@ -8,10 +8,9 @@ let
     acc: tool:
     let
       source = tool.source;
-      existing = acc.${source.name} or null;
     in
-      if existing != null && existing.fetchTree != source.fetchTree then
-        throw "Conflicting source definitions for ${source.name}"
+      if acc ? ${source.name} then
+        acc
       else
         acc
         // builtins.listToAttrs [
@@ -93,7 +92,7 @@ in {
     // {
       archivematica-toolchain = pkgs.buildEnv {
         name = "archivematica-toolchain";
-        paths = builtins.attrValues toolPackages;
+        paths = (builtins.attrValues toolPackages) ++ [ versionReport ];
       };
 
       tool-versions = versionManifest;
