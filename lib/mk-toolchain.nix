@@ -4,6 +4,8 @@
   toolDefinitions,
 }:
 let
+  toolManifest = (builtins.fromTOML (builtins.readFile ../tools.toml)).tools;
+
   addSource =
     acc: tool:
     let
@@ -29,32 +31,66 @@ let
         sourcePackageSets.${tool.source.name}
         or (throw "Unknown tool source: ${tool.source.name}");
       package = tool.package packageSet;
+      manifestEntry =
+        toolManifest.${tool.name}
+        or (throw "Missing tools.toml entry for tool: ${tool.name}");
     in
       tool
       // {
         inherit package;
+        groups = manifestEntry.groups or [ ];
       };
 
   tools = builtins.mapAttrs (_: resolveTool) toolDefinitions;
 
   toolPackages = builtins.mapAttrs (_: tool: tool.package) tools;
 
-  versionManifest = pkgs.writeText "tool-versions.txt" (
-    builtins.concatStringsSep "\n" (
-      builtins.map (
-        tool:
-          "${tool.name} ${tool.expectedVersion}"
-      ) (builtins.attrValues tools)
-    )
-    + "\n"
-  );
+  filterToolsByGroup = group:
+    pkgs.lib.filterAttrs (_: tool: builtins.elem group tool.groups) tools;
 
-  versionReport = pkgs.writeShellApplication {
-    name = "version-report";
-    text = ''
-      cat ${versionManifest}
-    '';
+  mkVersionManifest = fileName: selectedTools:
+    pkgs.writeText fileName (
+      builtins.concatStringsSep "\n" (
+        builtins.map (
+          tool:
+            "${tool.name} ${tool.expectedVersion}"
+        ) (builtins.attrValues selectedTools)
+      )
+      + "\n"
+    );
+
+  mkVersionReport = versionManifest:
+    pkgs.writeShellApplication {
+      name = "version-report";
+      text = ''
+        cat ${versionManifest}
+      '';
+    };
+
+  mkAggregate = packageName: group:
+    let
+      selectedTools = filterToolsByGroup group;
+      versionManifest = mkVersionManifest "${packageName}-versions.txt" selectedTools;
+      versionReport = mkVersionReport versionManifest;
+      selectedPackages = builtins.attrValues (
+        builtins.mapAttrs (_: tool: tool.package) selectedTools
+      );
+    in {
+      inherit selectedTools versionManifest versionReport;
+      package = pkgs.buildEnv {
+        name = packageName;
+        paths = selectedPackages ++ [ versionReport ];
+      };
+    };
+
+  aggregates = {
+    archivematica-toolchain = mkAggregate "archivematica-toolchain" "archivematica";
+    archivematica-storage-service-toolchain =
+      mkAggregate "archivematica-storage-service-toolchain" "storage-service";
   };
+
+  versionManifest = aggregates.archivematica-toolchain.versionManifest;
+  versionReport = aggregates.archivematica-toolchain.versionReport;
 
   mkApp = binary: {
     type = "app";
@@ -90,13 +126,16 @@ in {
   packages =
     toolPackages
     // {
-      archivematica-toolchain = pkgs.buildEnv {
-        name = "archivematica-toolchain";
-        paths = (builtins.attrValues toolPackages) ++ [ versionReport ];
-      };
+      archivematica-toolchain = aggregates.archivematica-toolchain.package;
+      archivematica-storage-service-toolchain =
+        aggregates.archivematica-storage-service-toolchain.package;
 
       tool-versions = versionManifest;
       version-report = versionReport;
+      storage-service-tool-versions =
+        aggregates.archivematica-storage-service-toolchain.versionManifest;
+      storage-service-version-report =
+        aggregates.archivematica-storage-service-toolchain.versionReport;
     };
 
   apps =

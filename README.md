@@ -120,7 +120,8 @@ A Docker image providing a stable Archivematica toolchain on top of Ubuntu
 
 A flake exposing the toolchain for Nix-native use, including:
 
-- a package named `archivematica-toolchain`;
+- packages named `archivematica-toolchain` and
+  `archivematica-storage-service-toolchain`;
 - a development shell for maintainers;
 - supporting package outputs for individual tools;
 - optionally, OCI image outputs built directly by Nix.
@@ -152,8 +153,9 @@ versions so the compatibility contract is easy to review.
 - [tools.toml](tools.toml) is the machine-readable manifest of Archivematica
   external tools that this repository is expected to provide independently of
   Archivematica's Python dependencies. Each entry describes the tool
-  Archivematica expects, the binaries it may invoke, and optionally the
-  package name this repository exposes for that tool.
+  Archivematica expects, the binaries it may invoke, optionally the package
+  name this repository exposes for that tool, and optionally deployment
+  groups such as `archivematica` or `storage-service`.
 - [tools](tools) contains the Nix tool definitions that turn those tool names
   into flake package outputs.
 - [pkgs](pkgs) contains custom package implementations used by some tool

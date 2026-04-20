@@ -2,138 +2,184 @@
 version = "5.1.3"
 binaries = ["ffmpeg", "ffprobe"]
 package = "ffmpeg"
+groups = ["archivematica"]
 
 [tools.imagemagick]
 version = "7.1.1-34"
 binaries = ["magick"]
 package = "imagemagick"
+groups = ["archivematica"]
 
 [tools."bulk-extractor"]
 version = "2.1.1"
 binaries = ["bulk_extractor"]
 package = "bulk-extractor"
+groups = ["archivematica"]
 
 [tools.jhove]
 version = "1.34.0"
 binaries = ["jhove"]
 package = "jhove"
+groups = ["archivematica"]
 
 [tools.siegfried]
 version = "1.11.2"
 binaries = ["sf", "roy"]
 package = "siegfried"
+groups = ["archivematica"]
 
 [tools.sevenzip]
 version = "24.07"
 binaries = ["7z"]
 package = "sevenzip"
+groups = ["archivematica", "storage-service"]
 
 [tools.pbzip2]
 version = "1.1.13"
 binaries = ["pbzip2"]
 package = "pbzip2"
+groups = ["archivematica"]
 
 [tools.gzip]
 version = "1.13"
 binaries = ["gzip"]
 package = "gzip"
+groups = ["archivematica"]
+
+[tools.git]
+version = "2.45.2"
+binaries = ["git"]
+package = "git"
+groups = ["archivematica", "storage-service"]
+
+[tools.gnupg]
+version = "2.4.5"
+binaries = ["gpg"]
+package = "gnupg"
+groups = ["archivematica", "storage-service"]
 
 [tools."gnu-tar"]
 version = "1.35"
 binaries = ["tar"]
 package = "gnu-tar"
+groups = ["archivematica", "storage-service"]
 
 [tools."coreutils-fileops"]
 version = "9.5"
 binaries = ["cp", "mv", "mkdir", "chmod", "test"]
 package = "coreutils-fileops"
+groups = ["archivematica", "storage-service"]
 
 [tools.tree]
 version = "2.1.2"
 binaries = ["tree"]
 package = "tree"
+groups = ["archivematica", "storage-service"]
 
 [tools.atool]
 version = "0.39.0"
 binaries = ["atool"]
 package = "atool"
+groups = ["archivematica"]
 
 [tools.rsync]
 version = "3.3.0"
 binaries = ["rsync"]
 package = "rsync"
+groups = ["archivematica", "storage-service"]
 
 [tools."coreutils-hashsum"]
 version = "9.5"
 binaries = ["md5sum", "sha1sum", "sha256sum", "sha512sum"]
 package = "coreutils-hashsum"
+groups = ["archivematica"]
 
 [tools.clamav]
 version = "1.3.1"
 binaries = ["clamscan", "freshclam", "clamd"]
 package = "clamav"
+groups = ["archivematica"]
 
 [tools.mediainfo]
 version = "24.06"
 binaries = ["mediainfo"]
 package = "mediainfo"
+groups = ["archivematica"]
 
 [tools.mediaconch]
 version = "25.04"
 binaries = ["mediaconch"]
 package = "mediaconch"
+groups = ["archivematica"]
 
 [tools.unar]
 version = "1.10.7"
-binaries = ["unar"]
+binaries = ["unar", "lsar"]
 package = "unar"
+groups = ["archivematica", "storage-service"]
 
 [tools.file]
 version = "5.45"
 binaries = ["file"]
 package = "file"
+groups = ["archivematica"]
 
 [tools.exiftool]
 version = "12.84"
 binaries = ["exiftool"]
 package = "exiftool"
+groups = ["archivematica"]
 
 [tools.readpst]
 version = "0.6.76"
 binaries = ["readpst"]
 package = "readpst"
+groups = ["archivematica"]
+
+[tools.rclone]
+version = "1.67.0"
+binaries = ["rclone"]
+package = "rclone"
+groups = ["archivematica", "storage-service"]
 
 [tools.grep]
 version = "3.11"
 binaries = ["grep"]
 package = "grep"
+groups = ["archivematica"]
 
 [tools.awk]
 version = "5.2.2"
 binaries = ["awk"]
 package = "awk"
+groups = ["archivematica"]
 
 [tools.ghostscript]
 version = "10.03.1"
 binaries = ["gs", "ps2pdf"]
 package = "ghostscript"
+groups = ["archivematica"]
 
 [tools.inkscape]
 version = "1.3.2"
 binaries = ["inkscape"]
 package = "inkscape"
+groups = ["archivematica"]
 
 [tools.sleuthkit]
 version = "4.12.1"
 binaries = ["fiwalk", "tsk_recover"]
 package = "sleuthkit"
+groups = ["archivematica"]
 
 [tools.tesseract]
 version = "5.3.4"
 binaries = ["tesseract"]
 package = "tesseract"
+groups = ["archivematica"]
 
 [tools."unrar-free"]
 version = "0.3.0"
 binaries = ["unrar-free"]
 package = "unrar-free"
+groups = ["archivematica"]

@@ -12,9 +12,6 @@ concurrency:
   group: release-${{ github.event.inputs.version }}
   cancel-in-progress: true
 
-env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/archivematica-toolchain
-
 jobs:
   validate-version:
     name: Validate semantic version
@@ -51,9 +48,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: linux/amd64
+          - image_name: archivematica-toolchain
+            toolchain_package: archivematica-toolchain
+            platform: linux/amd64
             runner: ubuntu-24.04
-          - platform: linux/arm64
+          - image_name: archivematica-toolchain
+            toolchain_package: archivematica-toolchain
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - image_name: archivematica-storage-service-toolchain
+            toolchain_package: archivematica-storage-service-toolchain
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - image_name: archivematica-storage-service-toolchain
+            toolchain_package: archivematica-storage-service-toolchain
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -80,7 +89,7 @@ jobs:
         id: meta-ghcr
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ${{ env.GHCR_IMAGE }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
           tags: |
             type=raw,value=${{ github.event.inputs.version }}
       - name: Build and push to GHCR by digest
@@ -90,10 +99,12 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
+          build-args: |
+            TOOLCHAIN_PACKAGE=${{ matrix.toolchain_package }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           provenance: false
           sbom: false
-          outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }},push-by-digest=true,name-canonical=true,push=true
       - name: Export GHCR digest
         run: |
           mkdir -p "${{ runner.temp }}/digests-ghcr"
@@ -102,15 +113,21 @@ jobs:
       - name: Upload GHCR digest
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4.6.2
         with:
-          name: digests-ghcr-${{ env.PLATFORM_PAIR }}
+          name: digests-ghcr-${{ matrix.image_name }}-${{ env.PLATFORM_PAIR }}
           path: ${{ runner.temp }}/digests-ghcr/*
           if-no-files-found: error
           retention-days: 1
 
   image-merge:
-    name: Publish Docker manifests
+    name: Publish Docker manifests (${{ matrix.image_name }})
     runs-on: ubuntu-24.04
     needs: [image-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: archivematica-toolchain
+          - image_name: archivematica-storage-service-toolchain
     permissions:
       contents: read
       packages: write
@@ -119,7 +136,7 @@ jobs:
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           path: ${{ runner.temp }}/digests-ghcr
-          pattern: digests-ghcr-*
+          pattern: digests-ghcr-${{ matrix.image_name }}-*
           merge-multiple: true
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
@@ -134,19 +151,20 @@ jobs:
         shell: bash
         run: |
           tag='${{ github.event.inputs.version }}'
+          image='ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}'
           args=(
-            -t "${{ env.GHCR_IMAGE }}:${tag}"
+            -t "${image}:${tag}"
           )
           if [[ "${tag}" != *-* ]]; then
-            args+=(-t "${{ env.GHCR_IMAGE }}:latest")
+            args+=(-t "${image}:latest")
           fi
 
           docker buildx imagetools create \
             "${args[@]}" \
-            $(printf '${{ env.GHCR_IMAGE }}@sha256:%s ' *)
+            $(printf "${image}@sha256:%s " *)
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ github.event.inputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}:${{ github.event.inputs.version }}
 
   release:
     name: Create GitHub release

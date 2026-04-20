@@ -49,6 +49,8 @@ Tool definitions should describe:
 
 - tool name;
 - expected version;
+- deployment groups when the tool belongs to a specific runtime image such as
+  `archivematica` or `storage-service`;
 - pinned source selection;
 - primary binary name;
 - package resolver.
@@ -90,10 +92,16 @@ Run an individual tool:
 nix run .#ffmpeg -- -version
 ```
 
-Build the combined toolchain package:
+Build the Archivematica toolchain package:
 
 ```sh
 nix build .#packages.x86_64-linux.archivematica-toolchain
+```
+
+Build the storage-service toolchain package:
+
+```sh
+nix build .#packages.x86_64-linux.archivematica-storage-service-toolchain
 ```
 
 Build the ARM64 Linux JHOVE package through Docker:
@@ -107,14 +115,22 @@ docker run --rm --platform linux/arm64 \
     --extra-experimental-features "nix-command flakes"'
 ```
 
-Build the ARM64 Ubuntu toolchain image:
+Build the ARM64 Ubuntu Archivematica toolchain image:
 
 ```sh
 docker buildx build --platform linux/arm64 --load \
   -t archivematica-toolchain:test .
 ```
 
-Smoke-test the Docker image:
+Build the ARM64 Ubuntu storage-service toolchain image:
+
+```sh
+docker buildx build --platform linux/arm64 --load \
+  --build-arg TOOLCHAIN_PACKAGE=archivematica-storage-service-toolchain \
+  -t archivematica-storage-service-toolchain:test .
+```
+
+Smoke-test the Archivematica Docker image:
 
 ```sh
 docker run --rm --platform linux/arm64 archivematica-toolchain:test ffmpeg -version
@@ -124,7 +140,8 @@ docker run --rm --platform linux/arm64 archivematica-toolchain:test magick -vers
 Or run the shared smoke-test script used by CI:
 
 ```sh
-./scripts/smoke-test-docker-image.sh archivematica-toolchain:test linux/arm64
+./scripts/smoke-test-docker-image.sh archivematica-toolchain:test linux/arm64 archivematica
+./scripts/smoke-test-docker-image.sh archivematica-storage-service-toolchain:test linux/arm64 storage-service
 ```
 
 The smoke-test script is the preferred local verification path after Docker
@@ -151,7 +168,7 @@ is missing from the Docker image, check the final assembly in
 
 - Pull requests call [.github/workflows/_build.yml](.github/workflows/_build.yml)
   through [.github/workflows/pr.yml](.github/workflows/pr.yml).
-- The shared build workflow builds the Docker image for both `linux/amd64` and
+- The shared build workflow builds both Docker images for `linux/amd64` and
   `linux/arm64`, then runs the same smoke-test script contributors can run
   locally.
 - Keep CI smoke coverage in `scripts/smoke-test-docker-image.sh` so local and
@@ -168,6 +185,6 @@ When updating a tool:
    [lib/tool-definitions.nix](lib/tool-definitions.nix) and
    [lib/mk-toolchain.nix](lib/mk-toolchain.nix).
 4. Verify the tool builds for at least one Linux target.
-5. Rebuild the Docker image and run
-   `./scripts/smoke-test-docker-image.sh archivematica-toolchain:test <platform>`.
+5. Rebuild the relevant Docker image and run
+   `./scripts/smoke-test-docker-image.sh <image> <platform> <profile>`.
 6. Update [README.md](README.md) only if the conceptual framing changed.

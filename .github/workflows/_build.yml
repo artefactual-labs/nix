@@ -10,14 +10,30 @@ on:
 
 jobs:
   image-build:
-    name: Build and Smoke Test (${{ matrix.platform }})
+    name: Build and Smoke Test (${{ matrix.image_name }}, ${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: linux/amd64
+          - image_name: archivematica-toolchain
+            toolchain_package: archivematica-toolchain
+            smoke_profile: archivematica
+            platform: linux/amd64
             runner: ubuntu-24.04
-          - platform: linux/arm64
+          - image_name: archivematica-toolchain
+            toolchain_package: archivematica-toolchain
+            smoke_profile: archivematica
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - image_name: archivematica-storage-service-toolchain
+            toolchain_package: archivematica-storage-service-toolchain
+            smoke_profile: storage-service
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - image_name: archivematica-storage-service-toolchain
+            toolchain_package: archivematica-storage-service-toolchain
+            smoke_profile: storage-service
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -41,13 +57,16 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
+          build-args: |
+            TOOLCHAIN_PACKAGE=${{ matrix.toolchain_package }}
           provenance: false
           sbom: false
           load: true
-          tags: archivematica-toolchain:${{ env.PLATFORM_PAIR }}
+          tags: ${{ matrix.image_name }}:${{ env.PLATFORM_PAIR }}
       - name: Smoke test image
         shell: bash
         run: |
           ./scripts/smoke-test-docker-image.sh \
-            "archivematica-toolchain:${PLATFORM_PAIR}" \
-            "${{ matrix.platform }}"
+            "${{ matrix.image_name }}:${PLATFORM_PAIR}" \
+            "${{ matrix.platform }}" \
+            "${{ matrix.smoke_profile }}"
